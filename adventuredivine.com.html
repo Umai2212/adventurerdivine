@@ -1,0 +1,721 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adventurer Divine - Hiking Blog</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background-color: #f9f9f9;
+            color: #333;
+        }
+
+        /* Navigation Bar */
+        .navbar {
+            position: sticky;
+            top: 0;
+            width: 100%;
+            height: 80px;
+            background: #fff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .nav-container {
+            width: 100%;
+            max-width: 1440px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+        }
+
+        .logo {
+            font-size: clamp(20px, 5vw, 24px);
+            font-weight: 700;
+            color: #2e7d32;
+        }
+
+        .nav-menu {
+            display: flex;
+            gap: 15px;
+        }
+
+        .nav-menu a {
+            text-decoration: none;
+            color: #333;
+            font-weight: 600;
+            font-size: clamp(14px, 4vw, 16px);
+        }
+
+        .nav-menu a:hover {
+            color: #2e7d32;
+        }
+
+        .dropdown {
+            position: relative;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background: #fff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            min-width: 160px;
+            z-index: 1;
+        }
+
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+
+        .dropdown-content a {
+            display: block;
+            padding: 10px;
+        }
+
+        .cta-button {
+            background: #2e7d32;
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 20px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: clamp(14px, 4vw, 16px);
+        }
+
+        .hamburger {
+            display: none;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        /* Hero Section */
+        .hero {
+            height: clamp(400px, 80vw, 600px);
+            background: url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e') no-repeat center/cover;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            position: relative;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+        }
+
+        .hero-content {
+            position: relative;
+            color: #fff;
+            padding: 20px;
+        }
+
+        .hero-content h1 {
+            font-size: clamp(28px, 6vw, 48px);
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+
+        .hero-content p {
+            font-size: clamp(16px, 4vw, 24px);
+            margin-bottom: 30px;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .hero-buttons .primary {
+            background: #2e7d32;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 20px;
+            text-decoration: none;
+        }
+
+        .hero-buttons .secondary {
+            border: 2px solid #fff;
+            color: #fff;
+            padding: 8px 18px;
+            border-radius: 20px;
+            text-decoration: none;
+        }
+
+        /* Featured Destinations */
+        .destinations {
+            background: #f9f9f9;
+            padding: clamp(40px, 10vw, 60px) 20px;
+            text-align: center;
+        }
+
+        .destinations h2 {
+            font-size: clamp(24px, 5vw, 36px);
+            margin-bottom: 40px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            max-width: 1440px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .card img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+
+        .card-content {
+            padding: 20px;
+        }
+
+        .card-content h3 {
+            font-size: clamp(18px, 4vw, 24px);
+            margin-bottom: 10px;
+        }
+
+        .card-content p {
+            font-size: clamp(14px, 3vw, 16px);
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .card-content a {
+            color: #2e7d32;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        /* Popular Hiking Routes */
+        .routes {
+            padding: clamp(40px, 10vw, 60px) 20px;
+            text-align: center;
+        }
+
+        .routes h2 {
+            font-size: clamp(24px, 5vw, 36px);
+            margin-bottom: 40px;
+        }
+
+        .routes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            max-width: 1440px;
+            margin: 0 auto;
+        }
+
+        .route-card {
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+
+        .difficulty {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: clamp(12px, 3vw, 14px);
+            margin-bottom: 10px;
+        }
+
+        .easy { background: #a5d6a7; }
+        .moderate { background: #ffd54f; }
+        .hard { background: #ef5350; }
+
+        /* Gear Guides */
+        .gear {
+            padding: clamp(40px, 10vw, 60px) 20px;
+            text-align: center;
+        }
+
+        .gear h2 {
+            font-size: clamp(24px, 5vw, 36px);
+            margin-bottom: 40px;
+        }
+
+        .gear-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            max-width: 1440px;
+            margin: 0 auto;
+        }
+
+        .gear-card {
+            background: #fff;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        /* Beginner's Section */
+        .beginner {
+            padding: clamp(40px, 10vw, 60px) 20px;
+            background: #fff;
+            text-align: center;
+        }
+
+        .beginner h2 {
+            font-size: clamp(24px, 5vw, 36px);
+            margin-bottom: 40px;
+        }
+
+        /* Hiker Stories */
+        .stories {
+            padding: clamp(40px, 10vw, 60px) 20px;
+            background: #fcf8f2;
+            text-align: center;
+        }
+
+        .stories h2 {
+            font-size: clamp(24px, 5vw, 36px);
+            margin-bottom: 40px;
+        }
+
+        .story-card {
+            display: flex;
+            align-items: center;
+            background: #fff;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .story-card img {
+            width: clamp(50px, 15vw, 60px);
+            height: clamp(50px, 15vw, 60px);
+            border-radius: 50%;
+            margin-right: 20px;
+        }
+
+        /* Newsletter Signup */
+        .newsletter {
+            padding: clamp(40px, 10vw, 60px) 20px;
+            background: #2e7d32;
+            color: #fff;
+            text-align: center;
+        }
+
+        .newsletter h2 {
+            font-size: clamp(24px, 5vw, 36px);
+            margin-bottom: 20px;
+        }
+
+        .newsletter form {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .newsletter input[type="email"] {
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            width: clamp(200px, 80%, 300px);
+        }
+
+        .newsletter button {
+            background: #fff;
+            color: #2e7d32;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        /* Footer */
+        .footer {
+            background: #424242;
+            color: #fff;
+            padding: clamp(30px, 8vw, 40px) 20px;
+            text-align: center;
+        }
+
+        .footer-container {
+            max-width: 1440px;
+            margin: 0 auto;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .footer-column {
+            flex: 1;
+            min-width: clamp(150px, 40%, 200px);
+        }
+
+        .footer-column h3 {
+            font-size: clamp(16px, 4vw, 20px);
+            margin-bottom: 20px;
+        }
+
+        .footer-column a {
+            color: #fff;
+            text-decoration: none;
+            display: block;
+            margin-bottom: 10px;
+            font-size: clamp(14px, 3vw, 16px);
+        }
+
+        .social-icons a {
+            color: #fff;
+            margin: 0 10px;
+            font-size: clamp(18px, 5vw, 24px);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .nav-menu {
+                display: none;
+                position: absolute;
+                top: 80px;
+                left: 0;
+                width: 100%;
+                background: #fff;
+                flex-direction: column;
+                padding: 20px;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            }
+
+            .nav-menu.active {
+                display: flex;
+            }
+
+            .hamburger {
+                display: block;
+            }
+
+            .dropdown-content {
+                position: static;
+                box-shadow: none;
+            }
+
+            .cta-button {
+                margin-left: auto;
+            }
+
+            .hero-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .routes-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero-content h1 {
+                font-size: clamp(24px, 8vw, 32px);
+            }
+
+            .hero-content p {
+                font-size: clamp(14px, 5vw, 18px);
+            }
+
+            .card img {
+                height: 150px;
+            }
+
+            .story-card {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .story-card img {
+                margin-right: 0;
+                margin-bottom: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">Adventurer Divine</div>
+            <div class="hamburger">☰</div>
+            <div class="nav-menu">
+                <a href="#">Home</a>
+                <div class="dropdown">
+                    <a href="#">Destinations ⌄</a>
+                    <div class="dropdown-content">
+                        <a href="#">Colorado</a>
+                        <a href="#">Utah</a>
+                        <a href="#">California</a>
+                    </div>
+                </div>
+                <a href="#">Hiking Routes</a>
+                <a href="#">Gear</a>
+                <a href="#">Tips & Guides</a>
+                <a href="#">Blog</a>
+            </div>
+            <a href="#" class="cta-button">Subscribe</a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1>Your Ultimate Resource for Hiking Trails Across the USA</h1>
+            <p>Routes, tips, and curated stories from real hikers</p>
+            <div class="hero-buttons">
+                <a href="#" class="primary">Explore Trails</a>
+                <a href="#" class="secondary">Beginner’s Guide</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Featured Destinations -->
+    <section class="destinations">
+        <h2>Top Hiking Destinations in the USA</h2>
+        <div class="grid">
+            <div class="card">
+                <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e" alt="Colorado">
+                <div class="card-content">
+                    <h3>Colorado</h3>
+                    <p>Explore rugged peaks and alpine meadows.</p>
+                    <a href="#">Discover More</a>
+                </div>
+            </div>
+            <div class="card">
+                <img src="https://images.unsplash.com/photo-1519681393784-d120267933ba" alt="Utah">
+                <div class="card-content">
+                    <h3>Utah</h3>
+                    <p>Red rock canyons and desert vistas await.</p>
+                    <a href="#">Discover More</a>
+                </div>
+            </div>
+            <div class="card">
+                <img src="https://images.unsplash.com/photo-1465189684280-6a0316a3e23f" alt="California">
+                <div class="card-content">
+                    <h3>California</h3>
+                    <p>Coastal trails and towering redwoods.</p>
+                    <a href="#">Discover More</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Popular Hiking Routes -->
+    <section class="routes">
+        <h2>Handpicked Trails for Every Level</h2>
+        <div class="routes-grid">
+            <div class="route-card">
+                <div class="difficulty easy">Easy</div>
+                <h3>Emerald Lake Trail</h3>
+                <p>Length: 3.2 miles | Elevation: 650 ft</p>
+                <a href="#">Read More</a>
+            </div>
+            <div class="route-card">
+                <div class="difficulty moderate">Moderate</div>
+                <h3>Angels Landing</h3>
+                <p>Length: 5.4 miles | Elevation: 1,488 ft</p>
+                <a href="#">Read More</a>
+            </div>
+            <div class="route-card">
+                <div class="difficulty hard">Hard</div>
+                <h3>Mt. Whitney</h3>
+                <p>Length: 22 miles | Elevation: 6,100 ft</p>
+                <a href="#">Read More</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Gear Guides -->
+    <section class="gear">
+        <h2>Plan Your Gear the Smart Way</h2>
+        <div class="gear-grid">
+            <div class="gear-card">
+                <h3>Best Shoes for Hiking</h3>
+                <p>Top picks for comfort and durability.</p>
+            </div>
+            <div class="gear-card">
+                <h3>Backpack Comparison</h3>
+                <p>Find the perfect pack for your trek.</p>
+            </div>
+            <div class="gear-card">
+                <h3>Navigation Tools</h3>
+                <p>Stay on track with GPS and maps.</p>
+            </div>
+            <div class="gear-card">
+                <h3>Layering & Clothing</h3>
+                <p>Stay comfortable in any weather.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Beginner's Section -->
+    <section class="beginner">
+        <h2>Just Getting Started?</h2>
+        <div class="grid">
+            <div class="card">
+                <img src="https://images.unsplash.com/photo-1501555088652-021faa106b9b" alt="Hiking Tips">
+                <div class="card-content">
+                    <h3>Top 10 Hiking Tips for First-Timers</h3>
+                    <p>Essential advice to start your journey.</p>
+                    <a href="#">Read More</a>
+                </div>
+            </div>
+            <div class="card">
+                <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e" alt="Pick Trail">
+                <div class="card-content">
+                    <h3>How to Pick Your First Trail</h3>
+                    <p>Choose the right trail for you.</p>
+                    <a href="#">Read More</a>
+                </div>
+            </div>
+            <div class="card">
+                <img src="https://images.unsplash.com/photo-1519681393784-d120267933ba" alt="Day Hike">
+                <div class="card-content">
+                    <h3>What to Pack for a Day Hike</h3>
+                    <p>Pack smart for a great hike.</p>
+                    <a href="#">Read More</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Hiker Stories -->
+    <section class="stories">
+        <h2>Hiker Stories</h2>
+        <div class="story-card">
+            <img src="https://images.unsplash.com/photo-1506794778202-6d8d17e6b2c4" alt="Hiker">
+            <div>
+                <p>"Hiking the PCT changed my life!"</p>
+                <a href="#">Read Full Story</a>
+            </div>
+        </div>
+        <div class="story-card">
+            <img src="https://images.unsplash.com/photo-1526772662000-3f88f10405ff" alt="Hiker">
+            <div>
+                <p>"Conquering my fears on Mt. Rainier."</p>
+                <a href="#">Read Full Story</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Newsletter Signup -->
+    <section class="newsletter">
+        <h2>Never Miss a Trail</h2>
+        <form>
+            <input type="email" placeholder="Enter your email" required>
+            <button type="submit">Subscribe</button>
+        </form>
+        <p>Get trail updates, beginner tips, and gear reviews weekly</p>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-column">
+                <h3>Quick Links</h3>
+                <a href="#">Home</a>
+                <a href="#">Routes</a>
+                <a href="#">Destinations</a>
+                <a href="#">Blog</a>
+            </div>
+            <div class="footer-column">
+                <h3>About</h3>
+                <p>Adventurer Divine is your go-to resource for hiking in the USA.</p>
+                <p>Contact: info@adventurerdivine.com</p>
+            </div>
+            <div class="footer-column">
+                <h3>Follow Us</h3>
+                <div class="social-icons">
+                    <a href="#">Instagram</a>
+                    <a href="#">YouTube</a>
+                    <a href="#">Twitter</a>
+                </div>
+            </div>
+        </div>
+        <p style="margin-top: 20px;">&copy; 2025 Adventurer Divine. All rights reserved.</p>
+    </footer>
+
+    <script>
+        // Simple hamburger menu toggle (since no JS was used in original)
+        document.querySelector('.hamburger').addEventListener('click', () => {
+            document.querySelector('.nav-menu').classList.toggle('active');
+        });
+    </script>
+</body>
+</html>
